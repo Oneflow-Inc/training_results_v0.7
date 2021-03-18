@@ -75,7 +75,7 @@ mlperf_log_utils.mlperf_submission_log(constants.RESNET)"
 
         # Clear caches
         if [ "${CLEAR_CACHES}" -eq 1 ]; then
-            sync && sudo /sbin/sysctl vm.drop_caches=3
+            # sync && sudo /sbin/sysctl vm.drop_caches=3
             docker exec -it "${_cont_name}" python -c "
 import mlperf_log_utils
 from mlperf_logging.mllog import constants
