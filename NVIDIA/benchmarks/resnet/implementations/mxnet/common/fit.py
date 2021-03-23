@@ -916,6 +916,12 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                 self.backward()
             
                 self.update()
+
+                if hvd.local_rank() == 0:
+                    print("just after model update")
+                    (arg_params, aux_params) = self.get_params()
+                    print(arg_params)
+                    print(aux_params)
             
                 if isinstance(data_batch, list):
                     self.update_metric(eval_metric,

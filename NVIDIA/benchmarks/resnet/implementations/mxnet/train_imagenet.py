@@ -181,6 +181,11 @@ if __name__ == '__main__':
         model.init_params(initializer, arg_params=arg_params, aux_params=aux_params)
         (arg_params, aux_params) = model.get_params()
 
+        if hvd.local_rank() == 0:
+            print("mxnet initialized params")
+            print(arg_params.keys())
+            print(aux_params.keys())
+
         if arg_params is not None:
             hvd.broadcast_parameters(arg_params, root_rank=0)
 
