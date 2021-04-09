@@ -24,6 +24,7 @@ import math
 import mxnet as mx
 import horovod.mxnet as hvd
 import numpy as np
+import csv
 
 #### imports needed for fit monkeypatch
 from mxnet.initializer import Uniform
@@ -365,7 +366,11 @@ class SGDwFASTLARS(Optimizer):
         self.skip = 0
         self.last_lr = None
         self.cur_lr = None
-
+        self.train_step2lr = {}
+        with open('/results/train_step2lr.csv', 'w', newline='') as csvfile:
+            fieldnames = ['train_step', 'lr']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
 
     def _get_lrs(self, indices):
         """Gets the learning rates given the indices of the weights.
@@ -391,6 +396,15 @@ class SGDwFASTLARS(Optimizer):
         if self.cur_lr is None:
             self.last_lr = lr
         self.cur_lr = lr
+
+        if hvd.local_rank() == 0:
+            if not self.num_update in self.train_step2lr:
+                self.train_step2lr[self.num_update] = lr
+                print("train_step: {}, lr: {}".format(self.num_update, lr))
+                fieldnames = ['train_step', 'lr']
+                with open('/results/train_step2lr.csv', 'a', newline='') as csvfile:
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writerow({'train_step': self.num_update, 'lr': lr})
 
         lrs = [lr for _ in indices]
         for i, index in enumerate(indices):
