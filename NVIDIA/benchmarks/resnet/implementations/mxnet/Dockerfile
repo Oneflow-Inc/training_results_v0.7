@@ -27,7 +27,7 @@ WORKDIR /workspace/image_classification
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir https://github.com/mlperf/logging/archive/9ea0afa.zip \
- && pip install --no-cache-dir -r requirements.txt
+ && pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --no-cache-dir -r requirements.txt
 
 # Copy ResNet-50 code
 COPY . .
