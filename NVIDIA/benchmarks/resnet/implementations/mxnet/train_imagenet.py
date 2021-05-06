@@ -186,6 +186,11 @@ if __name__ == '__main__':
             print(arg_params.keys())
             print(aux_params.keys())
 
+            import pickle as pkl
+
+            pkl.dump(arg_params, open("/results/arg_params", "wb"))
+            pkl.dump(aux_params, open("/results/aux_params", "wb"))
+
         if arg_params is not None:
             hvd.broadcast_parameters(arg_params, root_rank=0)
 
