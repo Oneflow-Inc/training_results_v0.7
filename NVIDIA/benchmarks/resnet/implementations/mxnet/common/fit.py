@@ -400,7 +400,7 @@ class SGDwFASTLARS(Optimizer):
         if hvd.local_rank() == 0:
             if not self.num_update in self.train_step2lr:
                 self.train_step2lr[self.num_update] = lr
-                print("train_step: {}, lr: {}".format(self.num_update, lr))
+                # print("train_step: {}, lr: {}".format(self.num_update, lr))
                 fieldnames = ['train_step', 'lr']
                 with open('/results/train_step2lr.csv', 'a', newline='') as csvfile:
                     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
