@@ -181,16 +181,6 @@ if __name__ == '__main__':
         model.init_params(initializer, arg_params=arg_params, aux_params=aux_params)
         (arg_params, aux_params) = model.get_params()
 
-        if hvd.local_rank() == 0:
-            print("mxnet initialized params")
-            print(arg_params.keys())
-            print(aux_params.keys())
-
-            import pickle as pkl
-
-            pkl.dump(arg_params, open("/results/arg_params", "wb"))
-            pkl.dump(aux_params, open("/results/aux_params", "wb"))
-
         if arg_params is not None:
             hvd.broadcast_parameters(arg_params, root_rank=0)
 
@@ -199,11 +189,37 @@ if __name__ == '__main__':
 
         model.set_params(arg_params=arg_params, aux_params=aux_params)
 
+        if hvd.local_rank() == 0:
+            import pickle as pkl
+
+            pkl.dump(arg_params, open("/results/initialized_arg_params", "wb"))
+            pkl.dump(aux_params, open("/results/initialized_aux_params", "wb"))
+
+
     mx.ndarray.waitall()
     mx_resnet_print_end(key=constants.INIT_STOP)
 
     # Start training
     fit.fit(args, kv, model, initializer, lambda_fnc_dali_get_rec_iter, devs, arg_params, aux_params)
+
+    if 'horovod' in args.kv_store:
+        (arg_params, aux_params) = model.get_params()
+
+        if arg_params is not None:
+            hvd.broadcast_parameters(arg_params, root_rank=0)
+
+        if aux_params is not None:
+            hvd.broadcast_parameters(aux_params, root_rank=0)
+
+        if hvd.local_rank() == 0:
+            import pickle as pkl
+
+            pkl.dump(arg_params, open("/results/trained_arg_params", "wb"))
+            pkl.dump(aux_params, open("/results/trained_aux_params", "wb"))
+
+    mx.ndarray.waitall()
+
+    assert False
 
     # Timeout alarm for possible hangs at job end
     # TODO: REMOVE THIS!
