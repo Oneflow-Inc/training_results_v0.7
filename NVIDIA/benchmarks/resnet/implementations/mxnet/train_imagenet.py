@@ -57,7 +57,7 @@ def add_general_args(parser):
                         help='the layout of the data assumed by the pooling operation (e.g. NCHW)')
     parser.add_argument('--kv-store', type=str, default='device',
                         help='key-value store type')
-    parser.add_argument('--bn-group', type=int, default=1, choices=[1, 2, 4], 
+    parser.add_argument('--bn-group', type=int, default=1, choices=[1, 2, 4],
                         help='Group of processes to collaborate on BatchNorm ops')
 
 def _get_gpu(gpus):
@@ -144,7 +144,7 @@ if __name__ == '__main__':
     else:
         kv = mx.kvstore.create(args.kv_store)
 
-    
+
     random.seed(args.seed)
     np.random.seed(args.seed)
     mx.random.seed(args.seed)
@@ -155,6 +155,12 @@ if __name__ == '__main__':
 
     # Load symbol definiton and create model
     sym = net.get_symbol(**vars(args))
+    # internals = sym.get_internals()
+    # conv0 = internals['conv0_output']
+    # sym = mx.symbol.Group([sym, conv0])
+    # print('*'*100)
+    # print(sym.get_internals().list_outputs())
+    # print('*'*100)
 
     model = mx.mod.Module(context=devs, symbol=sym)
 
