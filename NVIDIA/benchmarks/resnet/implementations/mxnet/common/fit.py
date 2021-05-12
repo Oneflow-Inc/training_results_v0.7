@@ -786,6 +786,18 @@ def add_fit_args(parser):
     return train
 
 
+class Group0Accuarcy(mx.metric.Accuracy):
+    def __init__(self, axis=1, name='group0_accuarcy',
+                 output_names=None, label_names=None):
+        super(Group0Accuarcy, self).__init__(
+                name=name, axis=axis,
+                output_names=output_names, label_names=label_names)
+        self.axis = axis
+
+    def update(self, labels, preds):
+        super().update(labels, preds[:len(labels)])
+
+
 class CorrectCount(mx.metric.Accuracy):
     def __init__(self, axis=1, name='correct-count',
                  output_names=None, label_names=None):
@@ -886,7 +898,7 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
     block_epoch_count = eval_offset + 1 - (begin_epoch % eval_period)
     if block_epoch_count < 0:
         block_epoch_count += eval_period
-    
+
     mx_resnet_print_start(
         key=constants.BLOCK_START,
         metadata={'first_epoch_num': block_epoch_start + 1, 'epoch_count': block_epoch_count})
@@ -905,7 +917,7 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
             end_of_batch = False
             next_data_batch = next(data_iter)
             next_next_data_batch = None
-            
+
             while not end_of_batch:
                 if nbatch % 2 == 0:
                     data_batch = next_data_batch
@@ -915,6 +927,11 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                 if monitor is not None:
                     monitor.tic()
                 self.forward(data_batch)
+                # mx.ndarray.waitall()
+                if hvd.local_rank() == 0:
+                    #print(internals['conv0_output'].list_outputs())
+                    conv0_np = self.get_outputs()[1].asnumpy()
+                    print(conv0_np)
 
                 try:
                     if nbatch % 2 == 0:
@@ -928,7 +945,7 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                     end_of_batch = True
 
                 self.backward()
-            
+
                 self.update()
 
                 # if hvd.local_rank() == 0:
@@ -936,7 +953,7 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                 #     (arg_params, aux_params) = self.get_params()
                 #     print(arg_params)
                 #     print(aux_params)
-            
+
                 if isinstance(data_batch, list):
                     self.update_metric(eval_metric,
                             [db.label for db in data_batch],
@@ -954,7 +971,7 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                         callback(batch_end_params)
 
                 nbatch += 1
-        
+
             mx_resnet_print_end(key=constants.EPOCH_STOP, metadata={"epoch_num": epoch + 1})
             # one epoch of training is finished
             toc = time.time()
@@ -1141,7 +1158,7 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                                                     'epoch_count': block_epoch_count})
             # end of 1 epoch, reset the data-iter for another epoch
             train_data.reset()
-    
+
     if args.profile > 0:
         mx_resnet_print_end(key=constants.RUN_STOP,
                 metadata={'status': 'success'})
@@ -1233,7 +1250,7 @@ def fit(args, kv, model, initializer, data_loader, devs, arg_params, aux_params,
         mx_resnet_print_event(key='sgd_opt_learning_rate_decay_steps', val=args.num_epochs)
         mx_resnet_print_event(key='opt_learning_rate_warmup_epochs', val=args.warmup_epochs)
         mx_resnet_print_event(key='sgd_opt_base_learning_rate', val=optimizer_params['learning_rate'])
-    
+
     if 'horovod' in args.kv_store:
         # Setting idx2name dictionary, required to mask out entries for weight decay.
         idx2name = {}
@@ -1247,7 +1264,8 @@ def fit(args, kv, model, initializer, data_loader, devs, arg_params, aux_params,
         opt = args.optimizer
 
     # evaluation metrices
-    eval_metrics = ['accuracy']
+    # eval_metrics = ['accuracy']
+    eval_metrics = [Group0Accuarcy()]
     if args.top_k > 0:
         eval_metrics.append(mx.metric.create(
             'top_k_accuracy', top_k=args.top_k))
@@ -1262,11 +1280,11 @@ def fit(args, kv, model, initializer, data_loader, devs, arg_params, aux_params,
     else:
         batch_end_callbacks.append(mx.callback.Speedometer(
             args.batch_size, args.disp_batches))
-   
-    # init optimizer before update is called    
-    model.init_optimizer(kvstore=kv, optimizer=opt, 
+
+    # init optimizer before update is called
+    model.init_optimizer(kvstore=kv, optimizer=opt,
             optimizer_params = optimizer_params)
-    
+
     # Allocating memory in MxNet and Enabling CUDA Graph Capture
     data = [mx.nd.zeros(shape=(args.batch_size, 224, 224, 4),dtype='float16')]
     label = [mx.nd.zeros(shape=(args.batch_size,),dtype='float32')]
@@ -1274,7 +1292,7 @@ def fit(args, kv, model, initializer, data_loader, devs, arg_params, aux_params,
     model.forward_backward(mx.io.DataBatch(data,label))
     model.forward_backward(mx.io.DataBatch(data,label))
     mx.ndarray.waitall()
-    
+
     # data iterators
     mpiwrapper.barrier()
     mx_resnet_print_start(key=constants.RUN_START)
@@ -1303,13 +1321,13 @@ def fit(args, kv, model, initializer, data_loader, devs, arg_params, aux_params,
                             aux_params=aux_params,
                             batch_end_callback=batch_end_callbacks,
                             epoch_end_callback=epoch_end_callbacks, #checkpoint if args.use_dali else ,,
-                            allow_missing=True, 
+                            allow_missing=True,
                             eval_offset=args.eval_offset,
                             eval_period=args.eval_period,
                             accuracy_threshold=args.accuracy_threshold,
                             multi_gpu_per_process=(len(devs) > 1),
                             monitor=None)
-    
+
     # When using horovod, ensure all ops scheduled by the engine complete before exiting
     if 'horovod' in args.kv_store:
         mx.ndarray.waitall()
