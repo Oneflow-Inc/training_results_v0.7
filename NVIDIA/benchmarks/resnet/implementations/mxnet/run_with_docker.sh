@@ -26,7 +26,7 @@ fi
 readonly _seed_override=${SEED:-}
 readonly _config_file="./config_${DGXSYSTEM}.sh"
 readonly _logfile_base="${LOGDIR}/${DATESTAMP}"
-readonly _cont_name=rn50
+readonly _cont_name=image_classification
 _cont_mounts=("--volume=${DATADIR}:/data" "--volume=/tmp/log:/results")
 
 # MLPerf vars
