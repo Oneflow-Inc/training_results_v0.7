@@ -786,6 +786,18 @@ def add_fit_args(parser):
     return train
 
 
+class Group0Accuarcy(mx.metric.Accuracy):
+    def __init__(self, axis=1, name='group0_accuarcy',
+                 output_names=None, label_names=None):
+        super(Group0Accuarcy, self).__init__(
+                name=name, axis=axis,
+                output_names=output_names, label_names=label_names)
+        self.axis = axis
+
+    def update(self, labels, preds):
+        super().update(labels, preds[:len(labels)])
+
+
 class CorrectCount(mx.metric.Accuracy):
     def __init__(self, axis=1, name='correct-count',
                  output_names=None, label_names=None):
@@ -893,8 +905,6 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
 
     overlap_dali_with_fprop = True
     if (overlap_dali_with_fprop) :
-        internals = self.symbol.get_internals()
-        print(internals.list_outputs())
         ################################################################################
         # training loop with dali overlap with fwd
         ################################################################################
@@ -918,10 +928,10 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                     monitor.tic()
                 self.forward(data_batch)
                 # mx.ndarray.waitall()
-                # if hvd.local_rank() == 0:
-                #     #print(internals['conv0_output'].list_outputs())
-                #     conv0_np = self.get_outputs()[0].asnumpy()
-                #     print(conv0_np)
+                if hvd.local_rank() == 0:
+                    #print(internals['conv0_output'].list_outputs())
+                    conv0_np = self.get_outputs()[1].asnumpy()
+                    print(conv0_np)
 
                 try:
                     if nbatch % 2 == 0:
@@ -1254,7 +1264,8 @@ def fit(args, kv, model, initializer, data_loader, devs, arg_params, aux_params,
         opt = args.optimizer
 
     # evaluation metrices
-    eval_metrics = ['accuracy']
+    # eval_metrics = ['accuracy']
+    eval_metrics = [Group0Accuarcy()]
     if args.top_k > 0:
         eval_metrics.append(mx.metric.create(
             'top_k_accuracy', top_k=args.top_k))

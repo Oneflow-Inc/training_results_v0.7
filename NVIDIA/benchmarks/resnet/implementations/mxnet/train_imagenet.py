@@ -155,12 +155,12 @@ if __name__ == '__main__':
 
     # Load symbol definiton and create model
     sym = net.get_symbol(**vars(args))
-    # internals = sym.get_internals()
-    # conv0 = internals['conv0_output']
-    # sym = mx.symbol.Group([sym, conv0])
-    # print('*'*100)
-    # print(sym.get_internals().list_outputs())
-    # print('*'*100)
+    internals = sym.get_internals()
+    # print all internal symbols
+    # print(internals.list_outputs())
+    conv0 = internals['conv0_output']
+    conv0 = mx.sym.BlockGrad(conv0)
+    sym = mx.symbol.Group([sym, conv0])
 
     model = mx.mod.Module(context=devs, symbol=sym)
 
