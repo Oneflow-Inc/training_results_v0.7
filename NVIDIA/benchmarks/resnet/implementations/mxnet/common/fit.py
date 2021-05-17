@@ -786,6 +786,18 @@ def add_fit_args(parser):
     return train
 
 
+class Group0Accuarcy(mx.metric.Accuracy):
+    def __init__(self, axis=1, name='group0_accuarcy',
+                 output_names=None, label_names=None):
+        super(Group0Accuarcy, self).__init__(
+                name=name, axis=axis,
+                output_names=output_names, label_names=label_names)
+        self.axis = axis
+
+    def update(self, labels, preds):
+        super().update(labels, preds[:len(labels)])
+
+
 class CorrectCount(mx.metric.Accuracy):
     def __init__(self, axis=1, name='correct-count',
                  output_names=None, label_names=None):
@@ -906,6 +918,12 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
             next_data_batch = next(data_iter)
             next_next_data_batch = None
             
+            import pickle as pkl
+            arg_params = pkl.load(open("/results/trained_arg_params", "rb"))
+            aux_params = pkl.load(open("/results/trained_aux_params", "rb"))
+            self.set_params(arg_params=arg_params, aux_params=aux_params)
+
+
             while not end_of_batch:
                 if nbatch % 2 == 0:
                     data_batch = next_data_batch
@@ -914,7 +932,16 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
 
                 if monitor is not None:
                     monitor.tic()
+
+                np.save("/results/mx_images", data_batch[0].data[0].asnumpy())
+                np.save("/results/mx_labels", data_batch[0].label[0].asnumpy())
+
                 self.forward(data_batch)
+
+                if hvd.local_rank() == 0:
+                    # print(internals['conv0_output'].list_outputs())
+                    fc1 = self.get_outputs()[1].asnumpy()
+                    np.save("/results/fc1_out", fc1)
 
                 try:
                     if nbatch % 2 == 0:
@@ -928,14 +955,13 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                     end_of_batch = True
 
                 self.backward()
+
+                fc1_weight_grad = self._exec_group.execs[0].grad_dict['fc1_weight']
+                np.save("/results/fc1_weight_grad", fc1_weight_grad.asnumpy())
+
+                assert False
             
                 self.update()
-
-                # if hvd.local_rank() == 0:
-                #     print("just after model update")
-                #     (arg_params, aux_params) = self.get_params()
-                #     print(arg_params)
-                #     print(aux_params)
             
                 if isinstance(data_batch, list):
                     self.update_metric(eval_metric,
@@ -1247,7 +1273,8 @@ def fit(args, kv, model, initializer, data_loader, devs, arg_params, aux_params,
         opt = args.optimizer
 
     # evaluation metrices
-    eval_metrics = ['accuracy']
+    # eval_metrics = ['accuracy']
+    eval_metrics = [Group0Accuarcy()]
     if args.top_k > 0:
         eval_metrics.append(mx.metric.create(
             'top_k_accuracy', top_k=args.top_k))

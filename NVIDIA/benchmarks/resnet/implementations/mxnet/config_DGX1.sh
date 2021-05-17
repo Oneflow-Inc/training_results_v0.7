@@ -1,7 +1,7 @@
 source $(dirname ${BASH_SOURCE[0]})/config_DGX1_common.sh
 ## DL params
 export OPTIMIZER="sgdwfastlars"
-export BATCHSIZE="208"
+export BATCHSIZE="32"
 export KVSTORE="horovod"
 export LR="7.4"
 export WARMUP_EPOCHS="2"
@@ -12,7 +12,7 @@ export MOM="0.9"
 export LARSETA="0.001"
 export LABELSMOOTHING="0.1"
 export LRSCHED="pow2"
-export NUMEPOCHS="37" 
+export NUMEPOCHS="37"
 
 export NETWORK="resnet-v1b-dbar-fl"
 export MXNET_CUDNN_SUPPLY_NORMCONV_CONSTANTS=1
@@ -35,7 +35,7 @@ export MXNET_EXPERIMENTAL_ENABLE_CUDA_GRAPH=1
 
 export NCCL_MAX_RINGS=8
 export NCCL_BUFFSIZE=2097152
-export NCCL_NET_GDR_READ=1     
+export NCCL_NET_GDR_READ=1
 
 ## System run parms
 export DGXNNODES=1
@@ -43,6 +43,6 @@ export DGXSYSTEM=$(basename $(readlink -f ${BASH_SOURCE[0]}) | sed 's/^config_//
 export WALLTIME=01:30:00
 
 ## System config params
-export DGXNGPU=8
+export DGXNGPU=1
 export DGXSOCKETCORES=20
 export DGXHT=2         # HT is on is 2, HT off is 1

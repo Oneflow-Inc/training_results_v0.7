@@ -27,7 +27,7 @@ readonly _seed_override=${SEED:-}
 readonly _config_file="./config_${DGXSYSTEM}.sh"
 readonly _logfile_base="${LOGDIR}/${DATESTAMP}"
 readonly _cont_name=image_classification
-_cont_mounts=("--volume=${DATADIR}:/data" "--volume=/tmp/log:/results")
+_cont_mounts=("--volume=${DATADIR}:/data" "--volume=/home/xfjiang/log:/results")
 
 # MLPerf vars
 MLPERF_HOST_OS=$(

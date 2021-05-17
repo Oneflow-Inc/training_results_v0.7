@@ -156,6 +156,15 @@ if __name__ == '__main__':
     # Load symbol definiton and create model
     sym = net.get_symbol(**vars(args))
 
+    internals = sym.get_internals()
+    # print all internal symbols
+    # print(internals.list_outputs())
+    fc1 = internals['fc1_output']
+    fc1 = mx.sym.BlockGrad(fc1)
+    conv0 = internals['conv0_output']
+    conv0 = mx.sym.BlockGrad(conv0)
+    sym = mx.symbol.Group([sym, fc1, conv0])
+
     model = mx.mod.Module(context=devs, symbol=sym)
 
     # Weights init
@@ -189,11 +198,11 @@ if __name__ == '__main__':
 
         model.set_params(arg_params=arg_params, aux_params=aux_params)
 
-        if hvd.local_rank() == 0:
-            import pickle as pkl
+        # if hvd.local_rank() == 0:
+        #     import pickle as pkl
 
-            pkl.dump(arg_params, open("/results/initialized_arg_params", "wb"))
-            pkl.dump(aux_params, open("/results/initialized_aux_params", "wb"))
+        #     pkl.dump(arg_params, open("/results/initialized_arg_params", "wb"))
+        #     pkl.dump(aux_params, open("/results/initialized_aux_params", "wb"))
 
 
     mx.ndarray.waitall()
@@ -202,20 +211,20 @@ if __name__ == '__main__':
     # Start training
     fit.fit(args, kv, model, initializer, lambda_fnc_dali_get_rec_iter, devs, arg_params, aux_params)
 
-    if 'horovod' in args.kv_store:
-        (arg_params, aux_params) = model.get_params()
+    # if 'horovod' in args.kv_store:
+    #     (arg_params, aux_params) = model.get_params()
 
-        if arg_params is not None:
-            hvd.broadcast_parameters(arg_params, root_rank=0)
+    #     if arg_params is not None:
+    #         hvd.broadcast_parameters(arg_params, root_rank=0)
 
-        if aux_params is not None:
-            hvd.broadcast_parameters(aux_params, root_rank=0)
+    #     if aux_params is not None:
+    #         hvd.broadcast_parameters(aux_params, root_rank=0)
 
-        if hvd.local_rank() == 0:
-            import pickle as pkl
+    #     if hvd.local_rank() == 0:
+    #         import pickle as pkl
 
-            pkl.dump(arg_params, open("/results/trained_arg_params", "wb"))
-            pkl.dump(aux_params, open("/results/trained_aux_params", "wb"))
+    #         pkl.dump(arg_params, open("/results/trained_arg_params", "wb"))
+    #         pkl.dump(aux_params, open("/results/trained_aux_params", "wb"))
 
     mx.ndarray.waitall()
 
