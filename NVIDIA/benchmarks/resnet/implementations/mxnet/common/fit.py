@@ -933,15 +933,17 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                 if monitor is not None:
                     monitor.tic()
 
-                np.save("/results/mx_images", data_batch[0].data[0].asnumpy())
-                np.save("/results/mx_labels", data_batch[0].label[0].asnumpy())
+                if hvd.local_rank() == 0:
+                    np.save("/results/mx_images", data_batch[0].data[0].asnumpy())
+                    np.save("/results/mx_labels", data_batch[0].label[0].asnumpy())
 
                 self.forward(data_batch)
 
                 if hvd.local_rank() == 0:
-                    # print(internals['conv0_output'].list_outputs())
-                    fc1 = self.get_outputs()[1].asnumpy()
-                    np.save("/results/fc1_out", fc1)
+                    fc1_out = self.get_outputs()[1].asnumpy()
+                    np.save("/results/fc1_out", fc1_out)
+                    conv0_out = self.get_outputs()[2].asnumpy()
+                    np.save("/results/conv0_out", conv0_out)
 
                 try:
                     if nbatch % 2 == 0:
@@ -956,8 +958,11 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
 
                 self.backward()
 
-                fc1_weight_grad = self._exec_group.execs[0].grad_dict['fc1_weight']
-                np.save("/results/fc1_weight_grad", fc1_weight_grad.asnumpy())
+                if hvd.local_rank() == 0:
+                    fc1_weight_grad = self._exec_group.execs[0].grad_dict['fc1_weight']
+                    np.save("/results/fc1_weight_grad", fc1_weight_grad.asnumpy())
+                    conv0_weight_grad = self._exec_group.execs[0].grad_dict['conv0_weight']
+                    np.save("/results/conv0_weight_grad", conv0_weight_grad.asnumpy())
 
                 assert False
             

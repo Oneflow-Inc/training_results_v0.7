@@ -197,7 +197,6 @@ if __name__ == '__main__':
 
         model.set_params(arg_params=arg_params, aux_params=aux_params)
 
-
     mx.ndarray.waitall()
     mx_resnet_print_end(key=constants.INIT_STOP)
 
