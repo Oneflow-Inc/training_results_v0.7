@@ -919,8 +919,8 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
             next_next_data_batch = None
             
             import pickle as pkl
-            arg_params = pkl.load(open("/results/trained_arg_params", "rb"))
-            aux_params = pkl.load(open("/results/trained_aux_params", "rb"))
+            arg_params = pkl.load(open("/results/initialized_arg_params", "rb"))
+            aux_params = pkl.load(open("/results/initialized_aux_params", "rb"))
             self.set_params(arg_params=arg_params, aux_params=aux_params)
 
 
@@ -963,10 +963,16 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                     np.save("/results/fc1_weight_grad", fc1_weight_grad.asnumpy())
                     conv0_weight_grad = self._exec_group.execs[0].grad_dict['conv0_weight']
                     np.save("/results/conv0_weight_grad", conv0_weight_grad.asnumpy())
-
-                assert False
             
                 self.update()
+
+                if hvd.local_rank() == 0:
+                    import pickle as pkl
+
+                    pkl.dump(arg_params, open("/results/updated_arg_params", "wb"))
+                    pkl.dump(aux_params, open("/results/updated_aux_params", "wb"))
+
+                assert False
             
                 if isinstance(data_batch, list):
                     self.update_metric(eval_metric,
