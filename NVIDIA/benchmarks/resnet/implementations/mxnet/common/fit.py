@@ -856,7 +856,7 @@ class CrossEntropyCount(mx.metric.CrossEntropy):
 
 
 
-def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
+def mlperf_fit(name_list, self, args, train_data, eval_data=None, eval_metric='acc',
                epoch_end_callback=None, batch_end_callback=None, kvstore='local',
                optimizer='sgd', optimizer_params=(('learning_rate', 0.01),),
                eval_end_callback=None,
@@ -940,10 +940,11 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                 self.forward(data_batch)
 
                 if hvd.local_rank() == 0:
-                    fc1_out = self.get_outputs()[1].asnumpy()
-                    np.save("/results/fc1_out", fc1_out)
-                    conv0_out = self.get_outputs()[2].asnumpy()
+                    conv0_out = self.get_outputs()[3].asnumpy()
                     np.save("/results/conv0_out", conv0_out)
+                    fc1_out = self.get_outputs()[561].asnumpy()
+                    np.save("/results/fc1_out", fc1_out)
+
 
                 try:
                     if nbatch % 2 == 0:
@@ -958,12 +959,13 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
 
                 self.backward()
 
+                import os
                 if hvd.local_rank() == 0:
-                    fc1_weight_grad = self._exec_group.execs[0].grad_dict['fc1_weight']
-                    np.save("/results/fc1_weight_grad", fc1_weight_grad.asnumpy())
-                    conv0_weight_grad = self._exec_group.execs[0].grad_dict['conv0_weight']
-                    np.save("/results/conv0_weight_grad", conv0_weight_grad.asnumpy())
-            
+                    for idx, item in enumerate(name_list):
+                        grad_dict = self._exec_group.execs[0].grad_dict
+                        if item in grad_dict and grad_dict[item] is not None:
+                            np.save(os.path.join("/results/grad/", item + "_grad"), grad_dict[item].asnumpy())
+
                 self.update()
 
                 if hvd.local_rank() == 0:
@@ -1187,7 +1189,7 @@ def mlperf_fit(self, args, train_data, eval_data=None, eval_metric='acc',
                 metadata={'status': 'aborted'})
     return num_epoch
 
-def fit(args, kv, model, initializer, data_loader, devs, arg_params, aux_params, **kwargs):
+def fit(args, kv, name_list, model, initializer, data_loader, devs, arg_params, aux_params, **kwargs):
     """
     train a model
     args : argparse returns
@@ -1326,7 +1328,8 @@ def fit(args, kv, model, initializer, data_loader, devs, arg_params, aux_params,
             train = mx.io.ResizeIter(train, epoch_size)
 
     # run
-    last_epoch = mlperf_fit(model,
+    last_epoch = mlperf_fit(name_list,
+                            model,
                             args,
                             train,
                             begin_epoch=0,

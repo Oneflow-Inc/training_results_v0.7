@@ -157,12 +157,15 @@ if __name__ == '__main__':
     sym = net.get_symbol(**vars(args))
 
     internals = sym.get_internals()
-    # print(internals.list_outputs())
-    fc1 = internals['fc1_output']
-    fc1 = mx.sym.BlockGrad(fc1)
-    conv0 = internals['conv0_output']
-    conv0 = mx.sym.BlockGrad(conv0)
-    sym = mx.symbol.Group([sym, fc1, conv0])
+    name_list = []
+    sym_list = [sym]
+    for idx, item in enumerate(internals.list_outputs()):
+        name_list.append(item)
+        x = internals[item]
+        y = mx.sym.BlockGrad(x)
+        sym_list.append(y)
+    sym = mx.symbol.Group(sym_list)
+
 
     model = mx.mod.Module(context=devs, symbol=sym)
 
@@ -201,7 +204,7 @@ if __name__ == '__main__':
     mx_resnet_print_end(key=constants.INIT_STOP)
 
     # Start training
-    fit.fit(args, kv, model, initializer, lambda_fnc_dali_get_rec_iter, devs, arg_params, aux_params)
+    fit.fit(args, kv, name_list, model, initializer, lambda_fnc_dali_get_rec_iter, devs, arg_params, aux_params)
 
     # Timeout alarm for possible hangs at job end
     # TODO: REMOVE THIS!
