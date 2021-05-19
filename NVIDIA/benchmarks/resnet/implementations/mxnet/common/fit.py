@@ -656,64 +656,76 @@ def _get_gpu(gpus):
     gpu = gpus.split(",")[idx]
     return gpu
 
+# def _get_lr_scheduler(args, kv):
+#     if 'lr_factor' not in args or args.lr_factor >= 1:
+#         return (args.lr, None)
+#     epoch_size = get_epoch_size(args, kv)
+#     begin_epoch = 0
+#     if 'pow' in args.lr_step_epochs:
+#         num_workers = get_num_workers(args, kv)
+#         epoch_size = math.ceil(int(args.num_examples/num_workers)/args.batch_size)
+#         warmup_steps = epoch_size * args.warmup_epochs
+#         total_steps = epoch_size * args.num_epochs
+#         return (args.lr, PolySchedule(args.lr, total_steps, warmup_steps))
+# 
+#     step_epochs = [int(l) for l in args.lr_step_epochs.split(',')]
+#     mx_resnet_print_event(key=constants.OPT_LR_DECAY_BOUNDARY_EPOCHS,
+#                           val=step_epochs)
+#     lr = args.lr
+#     for s in step_epochs:
+#         if begin_epoch >= s:
+#             lr *= args.lr_factor
+#     if lr != args.lr:
+#         logging.info('Adjust learning rate to %e for epoch %d',
+#                      lr, begin_epoch)
+# 
+#     steps = [epoch_size * (x - begin_epoch)
+#              for x in step_epochs if x - begin_epoch > 0]
+#     if steps:
+#         num_workers = get_num_workers(args, kv)
+#         epoch_size = math.ceil(int(args.num_examples/num_workers)/args.batch_size)
+#         mx_resnet_print_event(key=constants.OPT_LR_DECAY_BOUNDARY_EPOCHS,
+#                         val=step_epochs)
+#         mx_resnet_print_event(key=constants.OPT_LR_DECAY_BOUNDARY_STEPS,
+#                         val=[lr * (args.lr_factor ** i) for i in range(len(step_epochs))])
+#         return (lr, mx.lr_scheduler.MultiFactorScheduler(step=steps, factor=args.lr_factor,
+#                                                          base_lr=args.lr, warmup_steps=epoch_size * args.warmup_epochs,
+#                                                          warmup_mode=args.warmup_strategy))
+#     else:
+#         return (lr, None)
+
 def _get_lr_scheduler(args, kv):
-    if 'lr_factor' not in args or args.lr_factor >= 1:
-        return (args.lr, None)
-    epoch_size = get_epoch_size(args, kv)
-    begin_epoch = 0
-    if 'pow' in args.lr_step_epochs:
-        num_workers = get_num_workers(args, kv)
-        epoch_size = math.ceil(int(args.num_examples/num_workers)/args.batch_size)
-        warmup_steps = epoch_size * args.warmup_epochs
-        total_steps = epoch_size * args.num_epochs
-        return (args.lr, PolySchedule(args.lr, total_steps, warmup_steps))
+    return (1., ConstantSchedule())
 
-    step_epochs = [int(l) for l in args.lr_step_epochs.split(',')]
-    mx_resnet_print_event(key=constants.OPT_LR_DECAY_BOUNDARY_EPOCHS,
-                          val=step_epochs)
-    lr = args.lr
-    for s in step_epochs:
-        if begin_epoch >= s:
-            lr *= args.lr_factor
-    if lr != args.lr:
-        logging.info('Adjust learning rate to %e for epoch %d',
-                     lr, begin_epoch)
+ 
 
-    steps = [epoch_size * (x - begin_epoch)
-             for x in step_epochs if x - begin_epoch > 0]
-    if steps:
-        num_workers = get_num_workers(args, kv)
-        epoch_size = math.ceil(int(args.num_examples/num_workers)/args.batch_size)
-        mx_resnet_print_event(key=constants.OPT_LR_DECAY_BOUNDARY_EPOCHS,
-                        val=step_epochs)
-        mx_resnet_print_event(key=constants.OPT_LR_DECAY_BOUNDARY_STEPS,
-                        val=[lr * (args.lr_factor ** i) for i in range(len(step_epochs))])
-        return (lr, mx.lr_scheduler.MultiFactorScheduler(step=steps, factor=args.lr_factor,
-                                                         base_lr=args.lr, warmup_steps=epoch_size * args.warmup_epochs,
-                                                         warmup_mode=args.warmup_strategy))
-    else:
-        return (lr, None)
+# class PolySchedule():
+#     def __init__(self, base_lr, iterations, warmup_iterations):
+#         self.base_lr = base_lr
+#         self.iterations = iterations
+#         self.warmup_iterations = warmup_iterations
+#         self.end_lr = 0.0001
+#         self.lr_decay_poly_power = 2
+#         mx_resnet_print_event(key='sgd_opt_learning_rate_decay_poly_power', val=self.lr_decay_poly_power)
+#         mx_resnet_print_event(key='sgd_opt_end_learning_rate', val=self.end_lr)
+#         mx_resnet_print_event(key=constants.LARS_OPT_LR_DECAY_POLY_POWER, val=self.lr_decay_poly_power)
+#         mx_resnet_print_event(key=constants.LARS_OPT_END_LR, val=self.end_lr)
+# 
+#     def __call__(self, iteration):
+#         if iteration <= self.warmup_iterations:
+#             return self.base_lr * (iteration / self.warmup_iterations)
+#         else:
+#             polyit = iteration - self.warmup_iterations
+#             polytotal = self.iterations - self.warmup_iterations
+# 
+#             return self.end_lr + ((self.base_lr - self.end_lr) * (1 - (polyit / polytotal))**self.lr_decay_poly_power)
 
-class PolySchedule():
-    def __init__(self, base_lr, iterations, warmup_iterations):
-        self.base_lr = base_lr
-        self.iterations = iterations
-        self.warmup_iterations = warmup_iterations
-        self.end_lr = 0.0001
-        self.lr_decay_poly_power = 2
-        mx_resnet_print_event(key='sgd_opt_learning_rate_decay_poly_power', val=self.lr_decay_poly_power)
-        mx_resnet_print_event(key='sgd_opt_end_learning_rate', val=self.end_lr)
-        mx_resnet_print_event(key=constants.LARS_OPT_LR_DECAY_POLY_POWER, val=self.lr_decay_poly_power)
-        mx_resnet_print_event(key=constants.LARS_OPT_END_LR, val=self.end_lr)
+class ConstantSchedule():
+    def __init__(self):
+        self.base_lr = 1.
 
     def __call__(self, iteration):
-        if iteration <= self.warmup_iterations:
-            return self.base_lr * (iteration / self.warmup_iterations)
-        else:
-            polyit = iteration - self.warmup_iterations
-            polytotal = self.iterations - self.warmup_iterations
-
-            return self.end_lr + ((self.base_lr - self.end_lr) * (1 - (polyit / polytotal))**self.lr_decay_poly_power)
+        return 1.
 
 def add_fit_args(parser):
     """
@@ -971,6 +983,7 @@ def mlperf_fit(name_list, self, args, train_data, eval_data=None, eval_metric='a
                 if hvd.local_rank() == 0:
                     import pickle as pkl
 
+                    arg_params, aux_params = self.get_params()
                     pkl.dump(arg_params, open("/results/updated_arg_params", "wb"))
                     pkl.dump(aux_params, open("/results/updated_aux_params", "wb"))
 
@@ -1234,9 +1247,9 @@ def fit(args, kv, name_list, model, initializer, data_loader, devs, arg_params, 
 
     optimizer_params = {
         'learning_rate': lr,
-        'wd': args.wd,
+        'wd': 0.0,
         'lr_scheduler': lr_scheduler,
-        'multi_precision': True}
+        'multi_precision': False}
 
     if 'horovod' in args.kv_store:
         optimizer_params['rescale_grad'] = 1. / args.batch_size
@@ -1244,7 +1257,7 @@ def fit(args, kv, name_list, model, initializer, data_loader, devs, arg_params, 
     # Only a limited number of optimizers have 'momentum' property
     has_momentum = {'sgd', 'dcasgd', 'nag', 'signum', 'lbsgd', 'sgdwlars', 'sgdwfastlars'}
     if args.optimizer in has_momentum:
-        optimizer_params['momentum'] = args.mom
+        optimizer_params['momentum'] = 0.0
 
     mx_resnet_print_event(key=constants.GLOBAL_BATCH_SIZE, val=args.batch_size * num_workers)
     if args.optimizer in {'sgdwlars', 'sgdwfastlars'}:
