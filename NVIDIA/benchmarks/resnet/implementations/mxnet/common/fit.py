@@ -518,6 +518,8 @@ class SGDwFASTLARS(Optimizer):
                 multi_lars(new_lrs[:nb_lars], w_sum_sq, g_sum_sq, new_wds[:nb_lars],
                            eta=self.lars_eta, eps=self.lars_eps, rescale_grad=self.rescale_grad,
                            out=new_lrs[:nb_lars])
+                print("*" * 100)
+                print(new_lrs)
                 new_states = [states[i] for i in full_idx]
                 # Same than usual using preloaded sgd functions
                 sidx = 0
@@ -987,16 +989,14 @@ def mlperf_fit(name_list, self, args, train_data, eval_data=None, eval_metric='a
                     pkl.dump(arg_params, open("/results/updated_arg_params", "wb"))
                     pkl.dump(aux_params, open("/results/updated_aux_params", "wb"))
 
-                assert False
-            
-                if isinstance(data_batch, list):
-                    self.update_metric(eval_metric,
-                            [db.label for db in data_batch],
-                            pre_sliced=True)
-                else:
-                    self.update_metric(eval_metric, data_batch.label)
-                if monitor is not None:
-                    monitor.toc_print()
+                # if isinstance(data_batch, list):
+                #     self.update_metric(eval_metric,
+                #             [db.label for db in data_batch],
+                #             pre_sliced=True)
+                # else:
+                #     self.update_metric(eval_metric, data_batch.label)
+                # if monitor is not None:
+                #     monitor.toc_print()
 
                 if batch_end_callback is not None:
                     batch_end_params = BatchEndParam(epoch=epoch, nbatch=nbatch,
