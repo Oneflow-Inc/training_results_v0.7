@@ -1,6 +1,6 @@
 source $(dirname ${BASH_SOURCE[0]})/config_DGX1_common.sh
 ## DL params
-export OPTIMIZER="sgd"
+export OPTIMIZER="sgdwfastlars"
 export BATCHSIZE="32"
 export KVSTORE="horovod"
 export LR="7.4"
