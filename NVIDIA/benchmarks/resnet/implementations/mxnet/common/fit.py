@@ -518,8 +518,6 @@ class SGDwFASTLARS(Optimizer):
                 multi_lars(new_lrs[:nb_lars], w_sum_sq, g_sum_sq, new_wds[:nb_lars],
                            eta=self.lars_eta, eps=self.lars_eps, rescale_grad=self.rescale_grad,
                            out=new_lrs[:nb_lars])
-                print("*" * 100)
-                print(new_lrs)
                 new_states = [states[i] for i in full_idx]
                 # Same than usual using preloaded sgd functions
                 sidx = 0
