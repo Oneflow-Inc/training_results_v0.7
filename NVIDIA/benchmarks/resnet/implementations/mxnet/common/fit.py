@@ -1249,7 +1249,7 @@ def fit(args, kv, name_list, model, initializer, data_loader, devs, arg_params, 
         'learning_rate': lr,
         'wd': 0.0,
         'lr_scheduler': lr_scheduler,
-        'multi_precision': False}
+        'multi_precision': True}
 
     if 'horovod' in args.kv_store:
         optimizer_params['rescale_grad'] = 1. / args.batch_size
