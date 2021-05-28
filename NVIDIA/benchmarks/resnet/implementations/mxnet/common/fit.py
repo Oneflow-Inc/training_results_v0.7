@@ -1319,12 +1319,12 @@ def fit(args, kv, name_list, model, initializer, data_loader, devs, arg_params, 
             optimizer_params = optimizer_params)
     
     # Allocating memory in MxNet and Enabling CUDA Graph Capture
-    data = [mx.nd.zeros(shape=(args.batch_size, 224, 224, 4),dtype='float16')]
-    label = [mx.nd.zeros(shape=(args.batch_size,),dtype='float32')]
-    model.update()
-    model.forward_backward(mx.io.DataBatch(data,label))
-    model.forward_backward(mx.io.DataBatch(data,label))
-    mx.ndarray.waitall()
+    # data = [mx.nd.zeros(shape=(args.batch_size, 224, 224, 4),dtype='float16')]
+    # label = [mx.nd.zeros(shape=(args.batch_size,),dtype='float32')]
+    # model.update()
+    # model.forward_backward(mx.io.DataBatch(data,label))
+    # model.forward_backward(mx.io.DataBatch(data,label))
+    # mx.ndarray.waitall()
     
     # data iterators
     mpiwrapper.barrier()
