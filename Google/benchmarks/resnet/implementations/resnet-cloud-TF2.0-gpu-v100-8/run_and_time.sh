@@ -1,9 +1,9 @@
 #!/bin/bash
 
 model_dir="/data/resnet50"
-data_dir="/data/imagenet_tf"
+data_dir="/data/imagenet/tfrecord/train"
 log_dir="/data/tf2"
-repo_dir="staging_clean/models/dev"
+repo_dir="repos/training_results_v0.7/Google/benchmarks/resnet/implementations/resnet-cloud-TF2.0-gpu-v100-8"
 docker_image="sgpyc/mlperf_v0.7:resnet_20200620"
 host_workspace=$HOME
 host_data_dir="/data"
@@ -72,10 +72,10 @@ docker_flags+="-v $host_data_dir:/data "
 docker_flags+="-v $host_workspace:/workspace "
 docker_flags+="--name=tf2-resnet "
 
-docker_exec="sudo docker exec ${env_params[@]} tf2-resnet"
+docker_exec="docker exec ${env_params[@]} tf2-resnet"
 
 echo "Creating docker container tf2-resnet from image ${docker_image} ..."
-cmd="sudo docker run ${docker_flags[@]} ${docker_image} sleep infinity"
+cmd="docker run ${docker_flags[@]} ${docker_image} sleep infinity"
 echo "${cmd[@]} &"
       ${cmd[@]} &
 sleep 20
